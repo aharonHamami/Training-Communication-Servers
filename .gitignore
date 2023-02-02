@@ -1,0 +1,5 @@
+# dependencies
+/Api-Gateway/node_modules
+/Communication-Server/node_modules
+/Editing-Server/node_modules
+/Registeration-Server/node_modules
