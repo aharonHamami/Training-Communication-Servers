@@ -1,5 +1,11 @@
 # dependencies
 /Api-Gateway/node_modules
+
 /Communication-Server/node_modules
+
 /Editing-Server/node_modules
+/Editing-Server/src/uploads
+
 /Registeration-Server/node_modules
+
+/test.js

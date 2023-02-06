@@ -5,23 +5,30 @@ const app = express();
 
 const port = 3008;
 
+function saveFile(file) {
+    console.log('we have a file: ', file.name);
+            
+    console.log('upload the file');
+    file.mv(__dirname + '/../uploads/' + file.name, error => {
+        if(error) {
+            console.log("<< Error: couldn't store the file \"" + file.name + "\" >>");
+        }
+    });
+}
+
 function start() {
     
-    app.get('/', (request, response) => {
-        response.send(' -- Editing server is working -- ');
-    });
-    
+    // parse FormData files into an object.
     // This middleware will enable the server to get 'multipart/form-data' requests.
-    // parse FormData files into an object
     app.use(fileupload({
-        createParentPath: true
+        createParentPath: true, // when using mv() it can create a new folder if not exist yet
     }));
     
     app.use(express.json());
     
-    app.post('/upload-file-test', (request, response) => {
-        response.status(200).json({message: '(test) file uploaded successfully'});
-    })
+    app.get('/', (request, response) => {
+        response.send(' -- Editing server is working -- ');
+    });
     
     app.post('/upload-file', (request, response) => {
         if(!request.files) {
@@ -30,23 +37,40 @@ function start() {
             response.status(400).json({message: 'No file uploaded'});
             return;
         }
-        console.log('file uploaded', request.files);
         
-        // let avatar = request.files.avatar; // is it realy avatar? need to check
+        const data = [];
         
-        // // save the file
-        // avatar.mv('../uploads/' + avatar.name);
+        if(!Array.isArray(request.files.audio)) {   // single file upload
+            const audio = request.files.audio;
+            
+            saveFile(audio);
+            
+            data.push({
+                name: audio.name,
+                mimetype: audio.mimetype,
+                size: audio.size
+            });
+        } else {                                    // multiple file uploads
+            request.files.audio.forEach(audio => {
+                saveFile(audio);
+                
+                data.push({
+                    name: audio.name,
+                    mimetype: audio.mimetype,
+                    size: audio.size
+                });
+            });
+        }
         
         response.status(200).json({
-            // data about the files that have been uploaded
-            // data: {
-            //     name: avatar.name,
-            //     mimetype: avatar.mimetype,
-            //     size: avatar.size
-            // },
-            message: 'File uploaded successfully'
+            message: 'Files uploaded successfully',
+            data: data
         });
     });
+    
+    // app.get('/sounds', (request, response) => {
+    //     response.sendFile
+    // });
     
 }
 
