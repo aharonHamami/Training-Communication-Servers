@@ -5,7 +5,7 @@ const UsersDB = require('../DataBase/Schemas/Users.js');
 // const AuthDB = require('../DataBase/Schemas/Authenticated');
 const { getRandomString } = require('../tools/tools.js');
 
-const port = 3006;
+const PORT = 3006;
 
 let authenticated = []; // all the users that are connected -> {email, userId, token, expireDate}
 

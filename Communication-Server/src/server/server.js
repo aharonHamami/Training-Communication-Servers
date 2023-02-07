@@ -10,7 +10,7 @@ const io = require('socket.io')(server, {
     }
 });
 
-const port = 3007;
+const PORT = 3007;
 
 function start() {
     app.use(express.json());

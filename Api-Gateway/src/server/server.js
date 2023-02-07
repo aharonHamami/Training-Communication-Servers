@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const port = 3005;
+const PORT = 3005;
 
 const httpRoutes = [
     {
@@ -58,8 +58,8 @@ function start() {
         app.use(createProxyMiddleware('/socket.io', route.proxy)); // proxy - send the message foreward
     });
     
-    app.listen(port, () => {
-        console.log(`listening in ${port}...`);
+    app.listen(PORT, () => {
+        console.log(`listening in ${PORT}...`);
     });
 }
 

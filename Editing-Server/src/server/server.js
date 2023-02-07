@@ -1,20 +1,12 @@
 const express = require('express');
 const fileupload = require('express-fileupload');
 
+const soundsRouter = require('./routes/sounds');
+const recordsRouter = require('./routes/redords');
+
 const app = express();
 
-const port = 3008;
-
-function saveFile(file) {
-    console.log('we have a file: ', file.name);
-            
-    console.log('upload the file');
-    file.mv(__dirname + '/../uploads/' + file.name, error => {
-        if(error) {
-            console.log("<< Error: couldn't store the file \"" + file.name + "\" >>");
-        }
-    });
-}
+const PORT = 3008;
 
 function start() {
     
@@ -30,52 +22,16 @@ function start() {
         response.send(' -- Editing server is working -- ');
     });
     
-    app.post('/upload-file', (request, response) => {
-        if(!request.files) {
-            console.log('<< Error: no file uploaded >>');
-            // 400 - bad request
-            response.status(400).json({message: 'No file uploaded'});
-            return;
-        }
-        
-        const data = [];
-        
-        if(!Array.isArray(request.files.audio)) {   // single file upload
-            const audio = request.files.audio;
-            
-            saveFile(audio);
-            
-            data.push({
-                name: audio.name,
-                mimetype: audio.mimetype,
-                size: audio.size
-            });
-        } else {                                    // multiple file uploads
-            request.files.audio.forEach(audio => {
-                saveFile(audio);
-                
-                data.push({
-                    name: audio.name,
-                    mimetype: audio.mimetype,
-                    size: audio.size
-                });
-            });
-        }
-        
-        response.status(200).json({
-            message: 'Files uploaded successfully',
-            data: data
-        });
-    });
+    // for records:
+    app.use('/records', recordsRouter);
     
-    // app.get('/sounds', (request, response) => {
-    //     response.sendFile
-    // });
+    // for noise sounds:
+    app.use('/sounds', soundsRouter);
     
 }
 
-app.listen(port, () => {
-    console.log(`listening on ${port}...`);
+app.listen(PORT, () => {
+    console.log(`listening on ${PORT}...`);
 });
 
 module.exports.start = start;
