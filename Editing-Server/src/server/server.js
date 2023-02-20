@@ -2,7 +2,7 @@ const express = require('express');
 const fileupload = require('express-fileupload');
 
 const soundsRouter = require('./routes/sounds');
-const recordsRouter = require('./routes/redords');
+const recordsRouter = require('./routes/records');
 
 const app = express();
 

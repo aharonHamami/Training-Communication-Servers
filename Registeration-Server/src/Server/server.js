@@ -81,7 +81,7 @@ function signUp(request, response) {
         .catch(error => {
             console.log("error while trying to find a user\n", error);
             
-            // 500 - internet server error
+            // 500 - server error
             response.status(500).json({
                 message: "error: couldn't make a user"
             });
@@ -105,7 +105,7 @@ function logIn(request, response) {
                 if(user == null){
                     console.log(' - couldn\'t find the user - ');
                     // 409 - conflict error
-                    response.status(409).json({message: "couldn't find the user"}); // error
+                    response.status(409).json({message: "This user doesn't exist"}); // error
                     return;
                 }
                 else if(user.password !== request.body.password){
@@ -130,7 +130,7 @@ function logIn(request, response) {
             .catch(error => {
                 console.log("error while trying to find a user\n", error);
                 
-                // 500 - internet server error
+                // 500 - server error
                 response.status(500).json({
                     message: "error: couldn't log the user in"
                 });
@@ -158,8 +158,8 @@ function start(){
         res.status(400).send({message: 'No such route available'});
     })
     
-    app.listen(port, () =>{
-        console.log(`listening on ${port}...`);
+    app.listen(PORT, () =>{
+        console.log(`listening on ${PORT}...`);
     });
 }
 

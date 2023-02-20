@@ -18,7 +18,7 @@ router.get('/', (request, response) => {
         
         // const audioFiles = files.filter(file => file.endsWith('.mp3'));
         
-        response.status(200).json({files: files});
+        response.status(200).json({soundNames: files});
     });
 });
 

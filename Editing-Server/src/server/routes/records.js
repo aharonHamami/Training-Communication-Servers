@@ -29,7 +29,27 @@ router.get('/', (request, response) => {
         
         // const audioFiles = files.filter(file => file.endsWith('.mp3'));
         
-        response.status(200).json({files: files});
+        response.status(200).json({recordNames: files});
+    });
+});
+
+router.get('/:name', (request, response) => {
+    console.log('specific record request');
+    
+    const fileName = request.params.name;
+    
+    console.log('record requested: ', fileName);
+    
+    const options = {
+        root: path.join(UPLOADS_DIR)
+    };
+    
+    response.sendFile(fileName, options, (error) => {
+        if(error) {
+            console.log("\nCouldn't send the file, Error:\n", error, '\n');
+        }else {
+            console.log("file sent successfully");
+        }
     });
 });
 
@@ -68,27 +88,7 @@ router.post('/upload-file', (request, response) => {
     
     response.status(200).json({
         message: 'Files uploaded successfully',
-        data: data
-    });
-});
-
-router.get('/:name', (request, response) => {
-    console.log('specific record request');
-    
-    const fileName = request.params.name;
-    
-    console.log('record requested: ', fileName);
-    
-    const options = {
-        root: path.join(UPLOADS_DIR)
-    };
-    
-    response.sendFile(fileName, options, (error) => {
-        if(error) {
-            console.log("\nCouldn't send the file, Error:\n", error, '\n');
-        }else {
-            console.log("file sent successfully");
-        }
+        files: data
     });
 });
 

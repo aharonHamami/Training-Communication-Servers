@@ -88,8 +88,8 @@ function start() {
         });
     });
     
-    server.listen(port, () => {
-        console.log(`listening on ${port}...`);
+    server.listen(PORT, () => {
+        console.log(`listening on ${PORT}...`);
     });
 }
 
