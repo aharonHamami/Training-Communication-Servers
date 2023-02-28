@@ -54,7 +54,7 @@ router.get('/:name', (request, response) => {
 });
 
 // response: the record specified
-router.post('/upload-file', (request, response) => {
+router.post('/upload-files', (request, response) => {
     if(!request.files) {
         console.log('<< Error: no file uploaded >>');
         // 400 - bad request

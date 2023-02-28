@@ -3,6 +3,7 @@ const fileupload = require('express-fileupload');
 
 const soundsRouter = require('./routes/sounds');
 const recordsRouter = require('./routes/records');
+const editRouter = require('./routes/edit');
 
 const app = express();
 
@@ -16,7 +17,7 @@ function start() {
         createParentPath: true, // when using mv() it can create a new folder if not exist yet
     }));
     
-    app.use(express.json());
+    app.use(express.json({limit: '50mb'}));
     
     app.get('/', (request, response) => {
         response.send(' -- Editing server is working -- ');
@@ -27,6 +28,9 @@ function start() {
     
     // for noise sounds:
     app.use('/sounds', soundsRouter);
+    
+    // for editing:
+    app.use('/edit', editRouter);
     
 }
 
