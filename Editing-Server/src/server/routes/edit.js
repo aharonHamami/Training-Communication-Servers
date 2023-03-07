@@ -1,103 +1,12 @@
 const express = require('express');
-const { create, all, help } = require('mathjs');
-
-const config = { }
-const math = create(all, config)
+const { dft, fft, ifft, idft, spectralSubtraction } = require('../../tools/fftTools');
 
 const router = express.Router();
 
-function multiply(...args) {
-    // console.log('multiply:');
-    let m = 1;
-    for(const arg of args) {
-        // console.log(m);
-        m = math.multiply(m, arg);
-    }
-    return m;
-}
-
-// signal should be an array of numbers between -1 and 1.
-const dft = (signal) => {
-    // console.log('start calculating DFT');
-    const X = []; // dft per frequency
-    const N = signal.length;
-    
-    // calculate the center of mass for each frequency (k)
-    for(let k=0; k<N; k++) {
-        // console.log('loop '+k+'/'+N);
-        
-        let Xk = math.complex(0,0);
-        for(const n in signal) {
-            // e^(-i2πkn/N)
-            const primitiveRoot = math.pow(math.e, multiply(math.i, -2, math.pi, k, math.divide(n, N)));
-            // x(n)
-            const amptitude = signal[n];
-            // x(n) * e^(-i2πkn/N)
-            const cmplxNum = math.multiply(amptitude, primitiveRoot);
-            
-            Xk = math.add(Xk, cmplxNum);
-        }
-        
-        // console.log('Xk = ', Xk);
-        X.push(Xk);
-    }
-    
-    return X;
-};
-
-// this function assumes that the the signal's length is a power of 2
-const fft = (signal) => {
-    const N = signal.length;
-    const halfN = Math.floor(N / 2);
-    
-    const X = [];
-    // X.length = N;
-    
-    // stop condition:
-    if(N == 1) {
-        return [signal[0]]; // an fft of 1 element is the same element
-    }
-    
-    // splitting the signal to even and odd numbers
-    const evenSignal = [];
-    const oddSignal = [];
-    for(let m=0; m<halfN; m++) {
-        evenSignal.push(signal[m*2]);
-        oddSignal.push(signal[m*2+1]);
-    }
-    
-    // E (fft list for each k)
-    const evenFFT = fft(evenSignal);
-    // O (fft list for each k)
-    const oddFFT = fft(oddSignal);
-    
-    // We will calculate half of the fft by using the fft i calculated of even and odd indexes
-    // I can calculate the rest half of the fft by using the first half of the fft
-    for(let k=0; k<halfN; k++) {
-        // Wk = e^(-i2πkn/N)
-        const primitiveRoot = math.pow(math.e, math.divide(multiply(math.i, -2, math.pi, k), N));
-        
-        // Ek + Wk*Ok ; k < N/2
-        X[k] = math.add(evenFFT[k], math.multiply(primitiveRoot, oddFFT[k]));
-        // Ek - Wk*Ok ; k >= N/2
-        X[halfN + k] = math.subtract(evenFFT[k], math.multiply(primitiveRoot, oddFFT[k]));
-    }
-    
-    // // fix for cases when N is not a power of 2:
-    // if(halfN*2 !== N) {
-    //     // add the last element of the sum of DFT: x[N-1]*e^(-2iπ(N-1)k/N) for each frequency
-    //     for(const k in signal) {
-    //         X[k] = 
-    //     }
-    // }
-    
-    return X;
-}
-
-router.post('/makeDFT', (request, response) => {
+router.post('/calculateDFT', (request, response) => {
     console.log('start calculating DFT...');
     try {
-        const calculatedDFT = dft(Object.values(request.body.waveform));
+        const calculatedDFT = dft(Object.values(request.body.signal));
         console.log('DFT ready: ', calculatedDFT);
         response.status(200).json({
             message: 'DFT of the signal',
@@ -111,14 +20,20 @@ router.post('/makeDFT', (request, response) => {
     }
 });
 
-router.post('/makeFFT', (request, response) => {
+router.post('/calculateFFT', (request, response) => {
     console.log('start calculating FFT...');
     try {
-        const calculatedFFT = fft(Object.values(request.body.waveform));
-        console.log('FFT ready: ', calculatedFFT);
+        let signal = request.body.signal;
+        if(!Array.isArray(signal)) {
+            signal = Object.values(signal);
+        }
+        
+        const fftResult = fft(signal);
+        
+        console.log('FFT ready: ', fftResult);
         response.status(200).json({
             message: 'FFT of the signal',
-            FFT: calculatedFFT
+            FFT: fftResult
         });
     }catch (e) {
         console.log("Error: couldn't calculate FFT: ", e);
@@ -126,6 +41,75 @@ router.post('/makeFFT', (request, response) => {
             message: 'something went wrong on our side'
         });
     }
+});
+
+router.post('/calculateIDFT', (request, response) => {
+    console.log('start calculating IDFT...');
+    try {
+        let frequencies = request.body.frequencies;
+        if(!Array.isArray(frequencies)) {
+            frequencies = Object.values(frequencies);
+        }
+        
+        const idftResult = idft(frequencies);
+        
+        console.log('IDFT ready: ', idftResult);
+        response.status(200).json({
+            message: 'Inverse DFT',
+            IDFT: idftResult
+        });
+    }catch (e) {
+        console.log("Error: couldn't calculate IDFT: ", e);
+        response.status(500).json({
+            message: 'something went wrong on our side'
+        });
+    }
+});
+
+router.post('/calculateIFFT', (request, response) => {
+    console.log('start calculating IFFT...');
+    try {
+        let frequencies = request.body.frequencies;
+        if(!Array.isArray(frequencies)) {
+            frequencies = Object.values(frequencies);
+        }
+        
+        const ifftResult = ifft(frequencies);
+        
+        console.log('IFFT ready: ', ifftResult);
+        response.status(200).json({
+            message: 'Inverse FFT',
+            IDFT: ifftResult
+        });
+    }catch (e) {
+        console.log("Error: couldn't calculate IFFT: ", e);
+        response.status(500).json({
+            message: 'something went wrong on our side'
+        });
+    }
+});
+
+router.post('/removeNoise', (request, response) => {
+    const {speachDomain, noiseDomain} = request.body;
+    let signal = request.body.signal;
+    
+    if(!Array.isArray(signal)) {
+        signal = Object.values(signal);
+    }
+    
+    console.log('-----v------v-------v-----');
+    const speachSignal = signal.slice(speachDomain.start, speachDomain.start + speachDomain.size);
+    const noiseSignal = signal.slice(noiseDomain.start, noiseDomain.start + noiseDomain.size);
+    const clearSpeach = spectralSubtraction(speachSignal, noiseSignal);
+    console.log('-----^------^-------^-----');
+    
+    // for some reason 'Array.splice()' not working here. "Maximum call stack size" error.
+    const responseSignal = [...signal.slice(0, speachDomain.start), ...clearSpeach, ...signal.slice(speachDomain.start + speachDomain.size)];
+    
+    response.status(200).json({
+        message: 'clear signal',
+        signal: responseSignal
+    });
 });
 
 module.exports = router;
