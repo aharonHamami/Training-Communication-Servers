@@ -7,32 +7,6 @@ const { getRandomString } = require('../tools/tools.js');
 
 const PORT = 3006;
 
-let authenticated = []; // all the users that are connected -> {email, userId, token, expireDate}
-
-function createAuth(email){
-    // remove all the similar authenticated info
-    authenticated = authenticated.filter(auth => auth.email !== email);
-    
-    const auth = {email: email, token: getRandomString(20)};
-    
-    let userId, sameAuth = undefined;
-    do {
-        userId = 'user_'+getRandomString(5);
-        // sameAuth = AuthDB.findOne({userId: userId});
-        sameAuth = authenticated.find(auth => {
-            return auth.userId === userId;
-        });
-    }while(sameAuth !== undefined);
-    auth.userId = userId;
-    
-    const expDate = new Date(); // expire date
-    expDate.setTime(expDate.getTime() + 1 * 60 * 60 * 1000); // + 1 hour
-    auth.expireDate = expDate;
-    
-    authenticated.push(auth);
-    return auth;
-};
-
 function signUp(request, response) {
     console.log("[post /sign-up] -> request.body = ", request.body);
     
@@ -51,13 +25,12 @@ function signUp(request, response) {
                 .then(() => {
                     console.log('- user created -');
                     
-                    const auth = createAuth(request.body.email);
-                    
                     // 200 - Success
                     response.status(200).json({
                         message: 'you signed up successfully',
-                        userId: auth.userId,
-                        token: auth.token
+                        userId: user.publicId,
+                        name: request.body.name,
+                        admin: user.admin
                     });
                 })
                 .catch(error => {
@@ -115,14 +88,12 @@ function logIn(request, response) {
                 } else {
                     console.log(` - user ${user.email} logged in - `);
                     
-                    const auth = createAuth(request.body.email);
-                    
                     // 200 - Success
                     response.status(200).json({
                         message: 'you logged in successfully',
+                        userId: user.publicId,
                         name: user.name,
-                        userId: auth.userId,
-                        token: auth.token
+                        admin: user.admin
                     });
                 }
                 

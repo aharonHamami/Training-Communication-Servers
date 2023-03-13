@@ -1,15 +1,17 @@
 const {Schema, model, SchemaType, SchemaTypes} = require('mongoose');
 
 const userSchema = new Schema({
+    publicId: {
+        type: String,
+        default: () => `user_${Date.now()}`,
+        // !! problem: need to block puting that field outside the schema !!
+    },
     name: {
         type: String,
         required: true,
         minLength: 0,
         validate: {
-            validator: value => {
-                console.log('validating the name **');
-                /.{1,}/.test(value);
-            }, // name pattern
+            validator: value => /.{1,}/.test(value), // name pattern
             message: 'Invalid name'
         }
     },
@@ -26,6 +28,10 @@ const userSchema = new Schema({
             validator: value => /^[a-zA-Z0-9]{5,15}$/.test(value),
             message: 'Invalid password'
         }
+    },
+    admin: {
+        type: Boolean,
+        default: false
     }
 });
 
