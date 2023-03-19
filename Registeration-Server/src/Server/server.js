@@ -129,6 +129,11 @@ function start(){
         res.status(400).send({message: 'No such route available'});
     })
     
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.status(500).json({message: 'Registeration: something went wrong'});
+    });
+    
     app.listen(PORT, () =>{
         console.log(`listening on ${PORT}...`);
     });

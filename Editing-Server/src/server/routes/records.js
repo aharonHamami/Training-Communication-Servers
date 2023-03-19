@@ -18,7 +18,7 @@ function saveFile(file) {
 }
 
 // response: records list
-router.get('/', (request, response) => {
+router.get('/', async (request, response) => {
     console.log('records list request');
     
     fs.readdir(UPLOADS_DIR, (error, files) => {

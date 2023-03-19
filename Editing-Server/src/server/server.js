@@ -32,10 +32,14 @@ function start() {
     // for editing:
     app.use('/edit', editRouter);
     
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.status(500).json({message: 'Editing: something went wrong'});
+    });
+    
+    app.listen(PORT, () => {
+        console.log(`listening on ${PORT}...`);
+    });
 }
-
-app.listen(PORT, () => {
-    console.log(`listening on ${PORT}...`);
-});
 
 module.exports.start = start;

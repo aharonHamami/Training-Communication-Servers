@@ -30,6 +30,35 @@ function createAuth(userId, name, admin){
     return authInfo;
 };
 
+function authenticate(token, checkAdmin) {
+    const authIndex = authenticated.findIndex(auth => auth.token === token);
+    let userAuth = authenticated[authIndex];
+    
+    console.log('all authentications: ', authenticated.map(auth => auth.token));
+    console.log('auth: ', userAuth);
+    
+    if(!userAuth) {
+        console.log('no available token found');
+        return false;
+    }
+    
+    const now = new Date().getTime();
+    const expireDate = new Date(userAuth.expireDate).getTime();
+    if(now >= expireDate) {
+        console.log('date is expired');
+        authenticated.splice(authIndex, 1); // remove the auth
+        userAuth = null;
+        return false;
+    }
+    
+    if(checkAdmin && !userAuth.admin) {
+        console.log("doesn't have administration access");
+        return false;
+    }
+    
+    return true;
+}
+
 const httpRoutes = [
     {
         url: '/users',
@@ -86,11 +115,8 @@ const httpRoutes = [
             // console.log('headers:', req.headers);
             const token = req.headers['authentication'];
             
-            const userAuth = authenticated.find(auth => auth.token === token);
-            console.log('auth: ', userAuth);
-            
             // the user need to be authenticated and has to have administration access
-            if(!userAuth || !userAuth.admin) {
+            if(!authenticate(token, true)) {
                 console.log('blocking request');
                 // 401 - Unauthorized
                 res.status(401).json({ message: 'This information requires authentication' });
@@ -129,12 +155,7 @@ const webSocketRoutes = [
                 
                 console.log('token: ', queries.token);
                 
-                
-                // check the token on the list and abort it there is no authentication
-                console.log('all authentications: ', authenticated.map(auth => auth.token));
-                const userAuth = authenticated.find(auth => auth.token === queries.token);
-                // console.log('auth: ', userAuth);
-                if(!userAuth) {
+                if(!authenticate(queries.token, false)) {
                     console.log('stop the request');
                     // stop the request from passing
                     proxyReq.abort();
@@ -173,32 +194,14 @@ function start() {
         app.use(createProxyMiddleware('/socket.io', route.proxy)); // proxy - send the message foreward
     });
     
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.status(500).json({message: 'Proxy: something went wrong'});
+    });
+    
     app.listen(PORT, () => {
         console.log(`listening in ${PORT}...`);
     });
 }
 
 module.exports.start = start;
-
-
-// for testing:
-
-/*app.all(route.url+'*', (req, res) => {
-            console.log(`send to: ${route.proxy.target}${req.originalUrl.replace(route.url,'')}/${req.params}`);
-            // try {
-                console.log('trying to send...');
-                axios.request({
-                    method: req.method,
-                    url: `${route.proxy.target}${req.originalUrl.replace(route.url,'')}/${req.params.id}`,
-                    data: req.body,
-                    headers: req.headers
-                }).then(response => {
-                    console.log('success');
-                    res.json(response.data);
-                }).catch(error => {
-                    console.log('Error:\n', error.message);
-                    res.status(500).json({
-                        message: 'Error: something went wrong while forwarding the message'
-                    });
-                });
-        });*/

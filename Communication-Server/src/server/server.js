@@ -54,12 +54,13 @@ function start() {
         socket.broadcast.emit('user-joined', user.id, user.name);
         
         socket.on('send-message', (otherUserId, message) => {
-            console.log(`${user.id} sended a mesassage to ${otherUserId}: ${message.type}`);
+            console.log(`${user.id} sent a mesassage to ${otherUserId}: ${message.type}`);
             
-            const otherSocketId = socketMap.find(element => element.userId === otherUserId).socketId;
+            const socketInfo = socketMap.find(element => element.userId === otherUserId);
             
-            if(otherSocketId) {
+            if(socketInfo) {
                 // console.log(`send the message (socket id is ${otherSocketId})`);
+                const otherSocketId = socketInfo.socketId;
                 socket.to(otherSocketId).emit('message-from-peer', user.id, message); // forwarding the message
             }
         });
@@ -86,6 +87,11 @@ function start() {
             
             console.log('reminded users:', usersArray.map(u => u.id));
         });
+    });
+    
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.status(500).json({message: 'Communication: something went wrong'});
     });
     
     server.listen(PORT, () => {

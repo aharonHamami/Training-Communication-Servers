@@ -65,9 +65,9 @@ function calculateFFT(signal) {
     }
     
     // E (fft list for each k)
-    const evenFFT = fft(evenSignal);
+    const evenFFT = calculateFFT(evenSignal);
     // O (fft list for each k)
-    const oddFFT = fft(oddSignal);
+    const oddFFT = calculateFFT(oddSignal);
     
     // We will calculate half of the fft by using the fft i calculated of even and odd indexes
     // I can calculate the rest half of the fft by using the first half of the fft
@@ -172,9 +172,9 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     
     console.log('calculating fft for each segment + substract + transfering back to signal');
     const subtractFFT = [];
-    // making average from the noise fft in order to subtract him from the segment wich are the same size
+    // making average from the noise fft in order to subtract him from each segments/window from the signal
     for(let i=0; i<windowSize; i++) {
-        subtractFFT.push(average(noiseFFT, i*(noiseSize/windowSize), (i+1)*(noiseSize/windowSize)));
+        subtractFFT.push(average(noiseFFT, (i/windowSize)*noiseSize, ((i+1)/windowSize)*noiseSize));
     }
     for(let index in segments) {
         // const segmentNum = parseInt(index);
