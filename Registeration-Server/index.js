@@ -10,3 +10,5 @@ mongoose.connect('mongodb://127.0.0.1:27017/Communication-Users')
     .catch(error => {
         console.log(`-- error: --\n ${error}`);
     });
+
+// const bucket = new mongoose.mongo.GridFSBucket(model.db);

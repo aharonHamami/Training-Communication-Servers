@@ -161,6 +161,12 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     // A single noise region is enough provided that it's long enough for your FFT.
     console.log('calculate noise fft');
     const noiseFFT = fft(noise);
+    const subtractFFT = [];
+    // making average from the noise fft in order to subtract him from each segments/window from the signal
+    for(let i=0; i<windowSize; i++) {
+        subtractFFT.push(average(noiseFFT, (i/windowSize)*noiseSize, ((i+1)/windowSize)*noiseSize));
+    }
+    // return subtractFFT;
     
     // 2. Do the FFT on the entire signal. This may be done in multiple segments (frames).
     console.log('making segmantation');
@@ -171,31 +177,48 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     }
     
     console.log('calculating fft for each segment + substract + transfering back to signal');
-    const subtractFFT = [];
-    // making average from the noise fft in order to subtract him from each segments/window from the signal
-    for(let i=0; i<windowSize; i++) {
-        subtractFFT.push(average(noiseFFT, (i/windowSize)*noiseSize, ((i+1)/windowSize)*noiseSize));
-    }
     for(let index in segments) {
         // const segmentNum = parseInt(index);
         segments[index] = fft(segments[index]);
+        // if(index == 5) {
+        //     return segments[index];
+        // }
         
         // 3. In the frequency domain, subtract the result of step 1 from step 2. 
         for(let sample in segments[index]) {
             // check this out, need to be subtracted properly from all over the original fft
-            // const stepA = math.complex(noiseFFT[segmentNum*segmentSize + sampleNum]);
-            const stepA = math.complex(math.abs(subtractFFT[sample]));
-            const stepB = math.complex(math.abs(segments[index][sample]));
+            
+            // First try:
+            // const noiseMagnitude = math.abs(subtractFFT[sample]); // step 1
+            // const signalMagnitude = math.abs(segments[index][sample]); // step 2
+            // const subtraction = math.subtract(signalMagnitude, noiseMagnitude);
+            // segments[index][sample] = math.multiply(math.divide(subtraction, signalMagnitude), segments[index][sample]);
+            
+            // Second try:
+            const stepA = math.abs(subtractFFT[sample]);
+            const stepB = math.abs(segments[index][sample]);
             segments[index][sample] = math.subtract(stepB, stepA);
+            
+            // console.log('sample: ', segments[index][sample]);
         }
         
         // 4. Do an inverse fft, which will bring your signal back into the time domain.
         segments[index] = ifft(segments[index]);
+        
+        // // aply window function on each segment:
+        // // console.log('------------------------');
+        // for(let sample in segments[index]) {
+        //     // console.log('before: ', segments[index][sample]);
+        //     segments[index][sample] = math.multiply(0.5, math.subtract(1, math.cos(math.divide(multiply(2, math.pi, segments[index][sample]), windowSize - 1))));
+        //     // console.log('after: ', segments[index][sample]);
+        // }
+        // // console.log('------------------------');
     }
     
     // connect back the signal:
     const clearSignal = segments.reduce((connected, segment) => connected.concat(segment));
     
+    console.log('clear signal: ', clearSignal);
     return clearSignal;
 }
 
