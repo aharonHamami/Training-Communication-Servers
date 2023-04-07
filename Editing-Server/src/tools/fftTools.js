@@ -157,6 +157,15 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     const noiseSize = noise.length; // length of the noise signal
     const windowSize = 2**10; // length of one window (for each segment of the entire signal)
     
+    // -----------------------
+    // Hann window:
+    const windowFunction = [];
+    for (let n = 0; n < windowSize; n++) {
+        windowFunction.push(0.54 - 0.46 * math.cos((2 * Math.PI * n) / (windowSize - 1)));
+    }
+    // -----------------------
+    
+    
     // 1. Identify the noise region(s) in your signal and do an FFT on it.
     // A single noise region is enough provided that it's long enough for your FFT.
     console.log('calculate noise fft');
@@ -166,6 +175,7 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     for(let i=0; i<windowSize; i++) {
         subtractFFT.push(average(noiseFFT, (i/windowSize)*noiseSize, ((i+1)/windowSize)*noiseSize));
     }
+    const noiseMagnitude = noiseFFT.map(value => math.abs(value));
     // return subtractFFT;
     
     // 2. Do the FFT on the entire signal. This may be done in multiple segments (frames).
@@ -179,15 +189,16 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     console.log('calculating fft for each segment + substract + transfering back to signal');
     for(let index in segments) {
         // const segmentNum = parseInt(index);
-        segments[index] = fft(segments[index]);
-        // if(index == 5) {
-        //     return segments[index];
-        // }
+        
+        // make windowing on the segment:
+        const insign = segments[index].map((value, sample) => value * windowFunction[sample]);
+        const insign_fft = fft(insign);
+        const magnitude = insign_fft.map(value => math.abs(value));
+        const angle = insign_fft.map(value => math.atan2(value.im, value.re));
+        // calculate SNR
         
         // 3. In the frequency domain, subtract the result of step 1 from step 2. 
         for(let sample in segments[index]) {
-            // check this out, need to be subtracted properly from all over the original fft
-            
             // First try:
             // const noiseMagnitude = math.abs(subtractFFT[sample]); // step 1
             // const signalMagnitude = math.abs(segments[index][sample]); // step 2
@@ -195,31 +206,28 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
             // segments[index][sample] = math.multiply(math.divide(subtraction, signalMagnitude), segments[index][sample]);
             
             // Second try:
-            const stepA = math.abs(subtractFFT[sample]);
-            const stepB = math.abs(segments[index][sample]);
-            segments[index][sample] = math.subtract(stepB, stepA);
+            const stepA = noiseMagnitude[sample];
+            const stepB = magnitude[sample];
+            let subtraction = 0;
+            if(stepB > stepA) { // stepB-stepA > 0
+                subtraction = math.subtract(stepB, stepA);
+            }
+            const phase = math.multiply(subtraction, math.exp(math.multiply(math.i, angle[sample])));
+            
+            segments[index][sample] = phase;
             
             // console.log('sample: ', segments[index][sample]);
         }
         
         // 4. Do an inverse fft, which will bring your signal back into the time domain.
         segments[index] = ifft(segments[index]);
-        
-        // // aply window function on each segment:
-        // // console.log('------------------------');
-        // for(let sample in segments[index]) {
-        //     // console.log('before: ', segments[index][sample]);
-        //     segments[index][sample] = math.multiply(0.5, math.subtract(1, math.cos(math.divide(multiply(2, math.pi, segments[index][sample]), windowSize - 1))));
-        //     // console.log('after: ', segments[index][sample]);
-        // }
-        // // console.log('------------------------');
     }
     
     // connect back the signal:
     const clearSignal = segments.reduce((connected, segment) => connected.concat(segment));
     
-    console.log('clear signal: ', clearSignal);
     return clearSignal;
 }
+
 
 module.exports =  {fft, dft, ifft, idft, spectralSubtraction};

@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('node:path');
+const { Worker } = require('node:worker_threads');
 const { dft, fft, ifft, idft, spectralSubtraction } = require('../../tools/fftTools');
 
 const router = express.Router();
@@ -90,6 +92,8 @@ router.post('/calculateIFFT', (request, response) => {
 });
 
 router.post('/removeNoise', (request, response) => {
+    const worker = new Worker(path.join(__dirname, '..', '..', 'tools', 'spectralSubtraction_service.js')); // to run spectral subtraction in parallel
+    
     const {speachDomain, noiseDomain} = request.body;
     let signal = request.body.signal;
     
@@ -100,16 +104,20 @@ router.post('/removeNoise', (request, response) => {
     console.log('-----v------v-------v-----');
     const speachSignal = signal.slice(speachDomain.start, speachDomain.start + speachDomain.size);
     const noiseSignal = signal.slice(noiseDomain.start, noiseDomain.start + noiseDomain.size);
-    const clearSpeach = spectralSubtraction(speachSignal, noiseSignal);
-    console.log('-----^------^-------^-----');
-    
-    // for some reason 'Array.splice()' not working here. "Maximum call stack size" error.
-    const responseSignal = [...signal.slice(0, speachDomain.start), ...clearSpeach, ...signal.slice(speachDomain.start + speachDomain.size)];
-    
-    response.status(200).json({
-        message: 'clear signal',
-        signal: responseSignal
+    worker.postMessage([speachSignal, noiseSignal]);
+    worker.once('message', (result) => {
+        const clearSpeach = result;
+        console.log('-----^------^-------^-----');
+        
+        // for some reason 'Array.splice()' not working here. "Maximum call stack size" error.
+        const responseSignal = [...signal.slice(0, speachDomain.start), ...clearSpeach, ...signal.slice(speachDomain.start + speachDomain.size)];
+        
+        response.status(200).json({
+            message: 'clear signal',
+            signal: responseSignal
+        });
     });
+    
 });
 
 module.exports = router;
