@@ -1,4 +1,4 @@
-const express = require('express'); // for input
+const express = require('express');
 const app = express();
 
 const cors = require('cors');
@@ -62,6 +62,30 @@ function authenticate(token, checkAdmin) {
 const httpRoutes = [
     {
         url: '/users',
+        beforeProxy: (req, res, next) => {
+            const whiteList = [
+                /^[/]sign[-]up$/, // /sign-up
+                /^[/]log[-]in$/ // /log-in
+            ];
+            // check white list
+            const index = whiteList.findIndex(regExp => (regExp.test(req.url)));
+            if(index != -1) { // found
+                next();
+                return;
+            }
+            
+            const token = req.headers['authentication'];
+            
+            // the user need to be authenticated and has to have administration access
+            if(!authenticate(token, true)) {
+                console.log('blocking request');
+                // 401 - Unauthorized
+                res.status(401).json({ message: 'This information requires authentication' });
+                // stop the request from passing
+            }else {
+                next();
+            }
+        },
         proxy: {
             target: "http://localhost:3006",
             changeOrigin: true, // if i understood correctly: http://localhost:3006 -> http://localhost3005
@@ -74,17 +98,32 @@ const httpRoutes = [
                 // req - request sent from the client
                 // res - response handler to the client
                 
+                const blackList = [
+                    /^[/]sign[-]up$/, // /sign-up
+                    /^[/]log[-]in$/ // /log-in
+                ];
+                // check white list
+                const index = blackList.findIndex(regExp => (regExp.test(req.url)));
+                if(index == -1) { // not found
+                    return;
+                }
+                
                 let responseData = null;
                 let authData = null;
                 
                 proxyRes.on('data', data => {
                     // convert the data to json:
                     const bufferAsString = data.toString("utf-8");
-                    responseData = JSON.parse(bufferAsString);
-                    console.log('received data: ', responseData);
                     
-                    if(responseData.name && responseData.userId) {
-                        authData = createAuth(responseData.userId, responseData.name, responseData.admin);
+                    try {
+                        responseData = JSON.parse(bufferAsString);
+                        console.log('received data: ', responseData);
+                        
+                        if(responseData && responseData.name && responseData.userId) {
+                            authData = createAuth(responseData.userId, responseData.name, responseData.admin);
+                        }
+                    }catch(e) {
+                        responseData = bufferAsString;
                     }
                 });
                 

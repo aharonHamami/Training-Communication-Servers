@@ -10,7 +10,7 @@ const PORT = 3006;
 function signUp(request, response) {
     console.log("[post /sign-up] -> request.body = ", request.body);
     
-    UsersDB.findOne({email: request.body.email})
+    UsersDB.findOne({email: request.body.email}).exec() // exec gives a more 'accurate' error stack
         .then(existingUser => {
             console.log("existing user: ", existingUser);
             if(existingUser !== null){
@@ -72,7 +72,7 @@ function logIn(request, response) {
             return;
         }
         
-        UsersDB.findOne({email: request.body.email})
+        UsersDB.findOne({email: request.body.email}).exec()
             .then(user => { 
                 console.log("existing user: ", user);
                 if(user == null){
@@ -124,10 +124,72 @@ function start(){
     app.post('/sign-up', signUp);
     app.post('/log-in', logIn);
     
+    // ---------------------------------
+    
+    app.get('/users-info', async (request, response) => {
+        try {
+            const users = await UsersDB.find({}, {_id: 0, __v: 0});
+            response.status(200).json({ users: users });
+        }catch(error) {
+            response.status(500).json({message: 'Something went wrong, try again later'});
+            console.error(error);
+        }
+    });
+    
+    app.post('/update-user/:id', (request, response) => {
+        try {
+            const userId = request.params.id;
+            const { name, password, admin } = request.body;
+            console.log('update: ', request.body);
+            
+            // update the user info:   
+            
+            UsersDB.findOneAndUpdate({publicId: userId}, {$set: {name, password, admin}}, {runValidators: true, returnOriginal: false})
+                .then(deletedUser => {
+                    let { _id, __v, ...userInfo } = deletedUser._doc;
+                    response.status(200).json({
+                        message: `User ${userId} updated successfully`,
+                        user: userInfo
+                    });
+                })
+                .catch(error => {
+                    let errorMessage = "Error: couldn't update a user";
+                        
+                    console.log("Error: couldn't update a user on the database.\n", error.message);
+                    if (error.name === "ValidationError") {
+                        console.log('error value: ', Object.values(error.errors)[0].message);
+                        errorMessage = Object.values(error.errors)[0].message;
+                    }
+                    
+                    // 400 - bad request
+                    response.status(400).json({
+                        message: errorMessage
+                    });
+                });
+        }catch(error) {
+            response.status(500).json({message: 'Something went wrong, try again later'});
+            console.error(error);
+        }
+    });
+    
+    app.delete('/:id', (request, response) => {
+        const userId = request.params.id;
+        
+        UsersDB.deleteOne({publicId: userId})
+            .then(() => {
+                response.status(200).json({message: 'user deleted successfully'});
+            })
+            .catch(error => {
+                response.status(500).json({message: "Couldn't delete the user"});
+            });
+    });
+    
+    // ---------------------------------
+    
     app.all('*', (req, res) => {
         console.log('bad request:', req.url);
         res.status(400).send({message: 'No such route available'});
-    })
+    });
     
     app.use((err, req, res, next) => {
         console.error(err.stack);
