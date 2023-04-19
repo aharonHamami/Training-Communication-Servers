@@ -6,7 +6,7 @@ const app = express();
 const server = require('http').Server(app);
 const io = require('socket.io')(server, {
     cors: {
-        origin: "http://localhost:3005",
+        origin: "http://localhost:3005", // API Gateway Address
     }
 });
 
@@ -20,7 +20,6 @@ function start() {
     });
     
     io.use((socket, next) => {
-        // check if the user is authenticated:
         const auth = socket.handshake.auth;
         // console.log('user id: ', auth.userId);
         // console.log('room id: ', auth.roomId);
@@ -36,37 +35,37 @@ function start() {
     });
     
     const usersArray = []; // [{name: 'name', id: 111, roomId: 222}]
-    const socketMap = []; // [{userId: 'userId', socketId: 'socketId'}]
     
     // socket.io listen to connections
-    io.on('connection', socket => {
+    io.on('connection', async socket => {
         const user = socket.user;
         
         console.log('+ user connected:', {name: user.name, id: user.id});
+        // console.log('socket id: ', socket.id);
         socket.emit('welcome', usersArray);
         
         usersArray.push(user);
-        socketMap.push({userId: user.id, socketId: socket.id});
         console.log('all connected useers:', usersArray.map(u => u.id));
         
         // start to build the signaling server
         socket.join(user.roomId);
         socket.broadcast.emit('user-joined', user.id, user.name);
         
-        socket.on('send-message', (otherUserId, message) => {
-            console.log(`${user.id} sent a mesassage to ${otherUserId}: ${message.type}`);
+        socket.on('send-message', async (recipientId, message) => {
+            console.log(`${user.id} sent a mesassage to ${recipientId}: ${message.type}`);
             
-            const socketInfo = socketMap.find(element => element.userId === otherUserId);
-            
-            if(socketInfo) {
-                // console.log(`send the message (socket id is ${otherSocketId})`);
-                const otherSocketId = socketInfo.socketId;
-                socket.to(otherSocketId).emit('message-from-peer', user.id, message); // forwarding the message
+            // find the right socket:
+            const sockets = await io.in(user.roomId).fetchSockets();
+            const recipientSocket = sockets.find(s => s.user.id === recipientId);
+            if(recipientSocket) {
+                console.log('send');
+                // send the message:
+                socket.to(recipientSocket.id).emit('message-from-peer', user.id, message);
             }
         });
         
         socket.on('disconnect', () => {
-            console.log('- user disconnected: ', {name: user.name, id: user.id});
+            console.log('- user disconnected: ', {name: user.name, id: socket.id});
             socket.broadcast.emit('user-left', user.id);
             
             const userIndex = usersArray.findIndex(currentUser => (currentUser.id === user.id));
@@ -75,14 +74,6 @@ function start() {
                 // console.log('deleted users: ', deletedUsers);
             }else {
                 console.log('<< Error: user not found >>', new Error().lineNumber);
-            }
-            
-            const socketIndex = socketMap.findIndex(currentSocket => (currentSocket.userId === user.id));
-            if(socketIndex !== -1) {
-                const deletedSockets = socketMap.splice(socketIndex, 1);
-                // console.log('deleted sockets: ', deletedSockets);
-            }else {
-                console.log('<< Error: socekt not found >>', new Error().lineNumber);
             }
             
             console.log('reminded users:', usersArray.map(u => u.id));

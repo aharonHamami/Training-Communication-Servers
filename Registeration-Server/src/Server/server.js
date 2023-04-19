@@ -124,8 +124,6 @@ function start(){
     app.post('/sign-up', signUp);
     app.post('/log-in', logIn);
     
-    // ---------------------------------
-    
     app.get('/users-info', async (request, response) => {
         try {
             const users = await UsersDB.find({}, {_id: 0, __v: 0});
@@ -183,8 +181,6 @@ function start(){
                 response.status(500).json({message: "Couldn't delete the user"});
             });
     });
-    
-    // ---------------------------------
     
     app.all('*', (req, res) => {
         console.log('bad request:', req.url);

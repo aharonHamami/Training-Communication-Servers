@@ -17,7 +17,7 @@ router.post('/calculateDFT', (request, response) => {
     }catch (e) {
         console.log("Error: couldn't calculate DFT: ", e);
         response.status(500).json({
-            message: 'something went wrong on our side'
+            message: "something went wrong, couldn't handle the request"
         });
     }
 });
@@ -40,7 +40,7 @@ router.post('/calculateFFT', (request, response) => {
     }catch (e) {
         console.log("Error: couldn't calculate FFT: ", e);
         response.status(500).json({
-            message: 'something went wrong on our side'
+            message: "something went wrong, couldn't handle the request"
         });
     }
 });
@@ -63,7 +63,7 @@ router.post('/calculateIDFT', (request, response) => {
     }catch (e) {
         console.log("Error: couldn't calculate IDFT: ", e);
         response.status(500).json({
-            message: 'something went wrong on our side'
+            message: "something went wrong, couldn't handle the request"
         });
     }
 });
@@ -86,7 +86,7 @@ router.post('/calculateIFFT', (request, response) => {
     }catch (e) {
         console.log("Error: couldn't calculate IFFT: ", e);
         response.status(500).json({
-            message: 'something went wrong on our side'
+            message: "something went wrong, couldn't handle the request"
         });
     }
 });

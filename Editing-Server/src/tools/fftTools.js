@@ -212,6 +212,7 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
             if(stepB > stepA) { // stepB-stepA > 0
                 subtraction = math.subtract(stepB, stepA);
             }
+            // x*e^(i*θ) - return the signal to its original angles
             const phase = math.multiply(subtraction, math.exp(math.multiply(math.i, angle[sample])));
             
             segments[index][sample] = phase;
