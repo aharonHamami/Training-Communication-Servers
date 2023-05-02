@@ -83,6 +83,7 @@ const httpRoutes = [
                 res.status(401).json({ message: 'This information requires authentication' });
                 // stop the request from passing
             }else {
+                console.log('request authenticated');
                 next();
             }
         },
@@ -206,6 +207,11 @@ const webSocketRoutes = [
 
 function start() {
     app.use(cors());
+    
+    app.use((req, res, next) => {
+        console.log('request: ' + req.path);
+        next();
+    })
     
     app.get('/', (request, response) => {
         response.send(" -- Gateway server is working -- ");

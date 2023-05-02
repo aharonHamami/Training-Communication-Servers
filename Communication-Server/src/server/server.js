@@ -21,7 +21,7 @@ function start() {
     
     io.use((socket, next) => {
         const auth = socket.handshake.auth;
-        // console.log('user id: ', auth.userId);
+        console.log('user id: ', auth.userId);
         // console.log('room id: ', auth.roomId);
         if(typeof auth.userId == 'string' && typeof auth.roomId == 'string'){
             socket.user = {};
@@ -36,7 +36,7 @@ function start() {
     
     const usersArray = []; // [{name: 'name', id: 111, roomId: 222}]
     
-    // socket.io listen to connections
+    // listen to connection and handle sockets
     io.on('connection', async socket => {
         const user = socket.user;
         
@@ -58,7 +58,6 @@ function start() {
             const sockets = await io.in(user.roomId).fetchSockets();
             const recipientSocket = sockets.find(s => s.user.id === recipientId);
             if(recipientSocket) {
-                console.log('send');
                 // send the message:
                 socket.to(recipientSocket.id).emit('message-from-peer', user.id, message);
             }

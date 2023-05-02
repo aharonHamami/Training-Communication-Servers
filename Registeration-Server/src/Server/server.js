@@ -13,11 +13,11 @@ function signUp(request, response) {
     UsersDB.findOne({email: request.body.email}).exec() // exec gives a more 'accurate' error stack
         .then(existingUser => {
             console.log("existing user: ", existingUser);
-            if(existingUser !== null){
-                // 409 - conflict error
-                response.status(409).json({message: 'This email is already used'}); // error
-                return;
-            }
+            // if(existingUser !== null){
+            //     // 409 - conflict error
+            //     response.status(409).json({message: 'This email is already used'}); // error
+            //     return;
+            // }
             
             const user = new UsersDB(request.body);
             // UsersDB.create(request.body)
@@ -36,13 +36,19 @@ function signUp(request, response) {
                 .catch(error => {
                     let errorMessage = "Error: couldn't make a user";
                     
-                    console.log("Error: couldn't add user to the database.\n", error.message);
+                    console.log("Error: couldn't add user to the database.\n", {
+                        errorMessage: error.message,
+                        errorName: error.name,
+                    });
                     if (error.name === "ValidationError") {
-                        // Object.keys(error.errors).forEach((key) => {
-                        //     console.log(key, ' -> ', error.errors[key].message);
-                        // });
                         console.log('error value: ', Object.values(error.errors)[0].message);
                         errorMessage = Object.values(error.errors)[0].message;
+                    }else if(error.code === 11000) { // unique key used twice
+                        if(error.keyPattern) {
+                            const key = Object.keys(error.keyPattern)[0];
+                            console.log('error value: ', key);
+                            errorMessage = `this ${key} is already in use`;
+                        }
                     }
                     
                     // 400 - bad request
@@ -141,7 +147,6 @@ function start(){
             console.log('update: ', request.body);
             
             // update the user info:   
-            
             UsersDB.findOneAndUpdate({publicId: userId}, {$set: {name, password, admin}}, {runValidators: true, returnOriginal: false})
                 .then(deletedUser => {
                     let { _id, __v, ...userInfo } = deletedUser._doc;

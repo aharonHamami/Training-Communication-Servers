@@ -10,17 +10,26 @@ const UPLOADS_DIR = path.join(__dirname, '..', '..', 'audio', 'uploads');
 // using GridFS in mongoodb - for file system management and uploading files to MongoDB
 let bucket;
 mongoose.connection.on('connected', () => {
-    bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db);
+    console.log('connect to records bucket');
+    bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {bucketName: 'recordsFS'});
 });
 
 function saveFile(file) {
     console.log('we have a file: ', file.name);
-         
+    
+    // checking file type
+    const extensionName = path.extname(file.name);
+    console.log('extension name: ', extensionName);
+    const allowedExtension = ['.mp3','.ogg','.wav'];
+    if(!allowedExtension.includes(extensionName)){
+        throw new Error('invalid file extension');
+    }
+    
     console.log('upload the file');
     file.mv(UPLOADS_DIR + '/' + file.name, error => {
         if(error) {
             console.log("<< Error: couldn't store the file \"" + file.name + "\" >>");
-            return;
+            throw new Error("couldn't store file " + file.name);
         }
         
         // upload the file to MongoDB
@@ -34,7 +43,7 @@ function saveFile(file) {
 router.get('/', (request, response) => {
     console.log('records list request');
     
-    // handle later // pppp
+    // MongoDb file system
     bucket.find({}, {_id: 0, filename: 1}).toArray()
         .then(documents => {
             const names = documents.map(doc => doc.filename);
@@ -96,15 +105,7 @@ router.post('/upload-files', (request, response) => {
     if(!Array.isArray(request.files.audio)) {   // single file upload
         const audio = request.files.audio;
         
-        saveFile(audio);
-        
-        data.push({
-            name: audio.name,
-            mimetype: audio.mimetype,
-            size: audio.size
-        });
-    } else {                                    // multiple file uploads
-        request.files.audio.forEach(audio => {
+        try{
             saveFile(audio);
             
             data.push({
@@ -112,13 +113,35 @@ router.post('/upload-files', (request, response) => {
                 mimetype: audio.mimetype,
                 size: audio.size
             });
+        }catch(error) {
+            console.log('Error: did not manage to save ' + audio.name, error);
+        }
+    } else {                                    // multiple file uploads
+        request.files.audio.forEach(audio => {
+            try {
+                saveFile(audio);
+                
+                data.push({
+                    name: audio.name,
+                    mimetype: audio.mimetype,
+                    size: audio.size
+                });    
+            }catch (error) {
+                console.log('Error: did not manage to save ' + audio.name, error);
+            }
         });
     }
     
-    response.status(200).json({
-        message: 'Files uploaded successfully',
-        files: data
-    });
+    if(data.length > 0) {
+        response.status(200).json({
+            message: 'Files uploaded successfully',
+            files: data
+        });
+    }else {
+        response.status(400).json({
+            message: 'Could not save your files, check your files settings'
+        });
+    }
 });
 
 module.exports = router;

@@ -92,32 +92,40 @@ router.post('/calculateIFFT', (request, response) => {
 });
 
 router.post('/removeNoise', (request, response) => {
-    const worker = new Worker(path.join(__dirname, '..', '..', 'tools', 'spectralSubtraction_service.js')); // to run spectral subtraction in parallel
-    
-    const {speachDomain, noiseDomain} = request.body;
-    let signal = request.body.signal;
-    
-    if(!Array.isArray(signal)) {
-        signal = Object.values(signal);
-    }
-    
-    console.log('-----v------v-------v-----');
-    const speachSignal = signal.slice(speachDomain.start, speachDomain.start + speachDomain.size);
-    const noiseSignal = signal.slice(noiseDomain.start, noiseDomain.start + noiseDomain.size);
-    worker.postMessage([speachSignal, noiseSignal]);
-    worker.once('message', (result) => {
-        const clearSpeach = result;
-        console.log('-----^------^-------^-----');
+    try {
+        const worker = new Worker(path.join(__dirname, '..', '..', 'tools', 'spectralSubtraction_service.js')); // to run spectral subtraction in parallel
         
-        // for some reason 'Array.splice()' not working here. "Maximum call stack size" error.
-        const responseSignal = [...signal.slice(0, speachDomain.start), ...clearSpeach, ...signal.slice(speachDomain.start + speachDomain.size)];
+        const {speachDomain, noiseDomain} = request.body;
+        let signal = request.body.signal;
         
-        response.status(200).json({
-            message: 'clear signal',
-            signal: responseSignal
+        if(!Array.isArray(signal)) {
+            signal = Object.values(signal);
+        }
+        
+        console.log('-----v------v-------v-----');
+        const speachSignal = signal.slice(speachDomain.start, speachDomain.start + speachDomain.size);
+        const noiseSignal = signal.slice(noiseDomain.start, noiseDomain.start + noiseDomain.size);
+        worker.postMessage([speachSignal, noiseSignal]);
+        worker.once('message', (result) => {
+            const clearSpeach = result;
+            console.log('-----^------^-------^-----');
+            
+            // for some reason 'Array.splice()' not working here. "Maximum call stack size" error.
+            const responseSignal = [...signal.slice(0, speachDomain.start), ...clearSpeach, ...signal.slice(speachDomain.start + speachDomain.size)];
+            
+            response.status(200).json({
+                message: 'clear signal',
+                signal: responseSignal
+            });
         });
-    });
-    
+        worker.on('error', error => {
+            response.status(500).json({message: 'Could not calculate Spectral Subtraction, try again later'});
+            console.error(error);
+        });
+    }catch(e) {
+        response.status(500).json({message: 'Something went wrong, try again later'});
+        console.error(error);
+    }
 });
 
 module.exports = router;

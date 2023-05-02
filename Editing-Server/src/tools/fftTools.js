@@ -43,7 +43,12 @@ const dft = (signal) => {
     return X;
 };
 
-// this function assumes that the the signal's length is a power of 2
+/**
+ * calculate FFT from the signal array
+ * this function assumes that the the signal's length is a power of 2
+ * @param {[]} signal 
+ * @returns FFT of the signal in an array of complex numbers
+ */
 function calculateFFT(signal) {
     const N = signal.length;
     const halfN = Math.floor(N / 2);
@@ -87,6 +92,11 @@ function calculateFFT(signal) {
     return X;
 }
 
+/**
+ * calculate FFT from the signal array
+ * @param {[]} signal 
+ * @returns FFT of the signal in an array of complex numbers
+ */
 const fft = (signal) => {
     const N = signal.length;
         
@@ -97,9 +107,10 @@ const fft = (signal) => {
     if(M != N) console.log('<< [fft]: Warning: signal size is not a power of 2 >>');
     
     const fftOutput = calculateFFT(paddedSignal);
-    const fftResult = fftOutput.slice(0, N);
+    // const fftResult = fftOutput.slice(0, N); // maybe need to delete this
     
-    return fftResult;
+    // return fftResult;
+    return fftOutput;
 }
 
 const idft = (frequencies) => {
@@ -120,6 +131,11 @@ const idft = (frequencies) => {
     return calculatedDFT;
 }
 
+/**
+ * calculate Invers FFT of a given array
+ * @param {[]} frequencies - array of cpmplex numbers representing the FFT of a signal
+ * @returns Inverse FFT in an array of complex numbers
+ */
 const ifft = (frequencies) => {
     // Idft algorithm: 
     const N = frequencies.length;
@@ -152,10 +168,19 @@ function average(arr, start, end) {
     return math.divide(sum, end-start);
 }
 
-const spectralSubtraction = (signal, noise) => { // start, fftSize
+/**
+ * Speech enhancment by calculating Spectral Subtraction of a signal
+ * @param {[]} signal - an array of the original signal values
+ * @param {[]} noise - an array of the noise values from the signal
+ * @returns the signal array with less noise and enhanced speech
+ */
+const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
     const signalSize = signal.length; // length of the entire signal
-    const noiseSize = noise.length; // length of the noise signal
-    const windowSize = 2**10; // length of one window (for each segment of the entire signal)
+    const noiseSize = 2**Math.floor(Math.log2(selectedNoise.length)); // length of the noise signal
+    const windowSize = noiseSize; // length of one window (for each segment of the entire signal)
+    
+    // to make the noiseFFT more accurate - make the noise length be a power of 2
+    const noise = selectedNoise.slice(0, noiseSize);
     
     // -----------------------
     // Hann window:
@@ -165,11 +190,20 @@ const spectralSubtraction = (signal, noise) => { // start, fftSize
     }
     // -----------------------
     
-    
     // 1. Identify the noise region(s) in your signal and do an FFT on it.
     // A single noise region is enough provided that it's long enough for your FFT.
     console.log('calculate noise fft');
-    const noiseFFT = fft(noise);
+    let noiseFFT = fft(noise); // change to const later
+    
+    // // pppp - make noiseFFT not constant
+    // let max = 0;
+    // noiseFFT.forEach(f => {
+    //     max = max > math.abs(f) ? max : math.abs(f);
+    // });
+    // console.log('max is: ', max);
+    // noiseFFT = noiseFFT.map(f => (math.abs(f) < 0.8*max ? f : 0));
+    // // pppp
+    
     const subtractFFT = [];
     // making average from the noise fft in order to subtract him from each segments/window from the signal
     for(let i=0; i<windowSize; i++) {
