@@ -21,7 +21,7 @@ const userSchema = new Schema({
         unique: true,
         required: true,
         validate: {
-            validator: value => /^\w+([-.]?\w+)+@([\w-]+\.)+[\w-]{2,4}$/.test(value), // email pattern
+            validator: value => /^\w+(?:[.-]\w+)*@\w+(?:[.-]\w+)*(?:\.\w{2,3})+$/.test(value), // email pattern
             message: 'Invalid email address'
         }
     },

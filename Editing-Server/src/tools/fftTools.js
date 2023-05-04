@@ -177,7 +177,10 @@ function average(arr, start, end) {
 const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
     const signalSize = signal.length; // length of the entire signal
     const noiseSize = 2**Math.floor(Math.log2(selectedNoise.length)); // length of the noise signal
-    const windowSize = noiseSize; // length of one window (for each segment of the entire signal)
+    const windowSize = Math.min(noiseSize, 2**10); // length of one window (for each segment of the entire signal)
+    // const windowSize = noiseSize; // length of one window (for each segment of the entire signal)
+    const Thres = 3; // threshold (in power of 10 ?)
+    const G = 0.9; // precent of the amount we take from the noise
     
     // to make the noiseFFT more accurate - make the noise length be a power of 2
     const noise = selectedNoise.slice(0, noiseSize);
@@ -195,21 +198,12 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
     console.log('calculate noise fft');
     let noiseFFT = fft(noise); // change to const later
     
-    // // pppp - make noiseFFT not constant
-    // let max = 0;
-    // noiseFFT.forEach(f => {
-    //     max = max > math.abs(f) ? max : math.abs(f);
-    // });
-    // console.log('max is: ', max);
-    // noiseFFT = noiseFFT.map(f => (math.abs(f) < 0.8*max ? f : 0));
-    // // pppp
-    
     const subtractFFT = [];
     // making average from the noise fft in order to subtract him from each segments/window from the signal
     for(let i=0; i<windowSize; i++) {
         subtractFFT.push(average(noiseFFT, (i/windowSize)*noiseSize, ((i+1)/windowSize)*noiseSize));
     }
-    const noiseMagnitude = noiseFFT.map(value => math.abs(value));
+    const noiseMagnitude = subtractFFT.map(value => math.abs(value));
     // return subtractFFT;
     
     // 2. Do the FFT on the entire signal. This may be done in multiple segments (frames).
@@ -228,8 +222,11 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
         const insign = segments[index].map((value, sample) => value * windowFunction[sample]);
         const insign_fft = fft(insign);
         const magnitude = insign_fft.map(value => math.abs(value));
-        const angle = insign_fft.map(value => math.atan2(value.im, value.re));
-        // calculate SNR
+        const angles = insign_fft.map(value => math.atan2(value.im, value.re));
+        
+        // calculate SNR - Signal to Noise Ratio
+        // norm in an array - the square root of the sum of squared elements
+        const SNRseg = math.log10(math.norm(magnitude) ** 2 / math.norm(noiseMagnitude) ** 2);
         
         // 3. In the frequency domain, subtract the result of step 1 from step 2. 
         for(let sample in segments[index]) {
@@ -240,18 +237,26 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
             // segments[index][sample] = math.multiply(math.divide(subtraction, signalMagnitude), segments[index][sample]);
             
             // Second try:
-            const stepA = noiseMagnitude[sample];
-            const stepB = magnitude[sample];
+            const noiseM = noiseMagnitude[sample];
+            const signalM = magnitude[sample];
             let subtraction = 0;
-            if(stepB > stepA) { // stepB-stepA > 0
-                subtraction = math.subtract(stepB, stepA);
+            if(signalM > noiseM) { // stepB-stepA > 0
+                subtraction = math.subtract(signalM, noiseM);
             }
+            
             // x*e^(i*θ) - return the signal to its original angles
-            const phase = math.multiply(subtraction, math.exp(math.multiply(math.i, angle[sample])));
+            const phase = math.multiply(subtraction, math.exp(math.multiply(math.i, angles[sample])));
             
             segments[index][sample] = phase;
             
             // console.log('sample: ', segments[index][sample]);
+        }
+        
+        // implement simple VAD detector: (VAD - Voice Activity Detection)
+        if(SNRseg < Thres) {
+            for(let i in noiseMagnitude) {
+                noiseMagnitude[i] = G * noiseMagnitude[i] + (1-G) * magnitude[i];
+            }
         }
         
         // 4. Do an inverse fft, which will bring your signal back into the time domain.
