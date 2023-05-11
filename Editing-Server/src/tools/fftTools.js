@@ -3,6 +3,11 @@ const { create, all } = require('mathjs');
 const config = { }
 const math = create(all, config)
 
+/**
+ * multiply multiple real or complex numbers
+ * @param  {...math.Complex} args - the numbers to multiply
+ * @returns 
+ */
 function multiply(...args) {
     // console.log('multiply:');
     let m = 1;
@@ -46,7 +51,7 @@ const dft = (signal) => {
 /**
  * calculate FFT from the signal array
  * this function assumes that the the signal's length is a power of 2
- * @param {[]} signal 
+ * @param {[]} signal - the signal represented by an array of amplitudes
  * @returns FFT of the signal in an array of complex numbers
  */
 function calculateFFT(signal) {
@@ -93,8 +98,8 @@ function calculateFFT(signal) {
 }
 
 /**
- * calculate FFT from the signal array
- * @param {[]} signal 
+ * calculate FFT for a given signal
+ * @param {[]} signal - the signal represented by an array of amplitudes
  * @returns FFT of the signal in an array of complex numbers
  */
 const fft = (signal) => {
@@ -113,6 +118,11 @@ const fft = (signal) => {
     return fftOutput;
 }
 
+/**
+ * calculate Inverse DFT for a given array
+ * @param {[]} frequencies - an array of cpmplex numbers representing the FFT of a signal
+ * @returns 
+ */
 const idft = (frequencies) => {
     // Idft algorithm: 
     const N = frequencies.length;
@@ -132,8 +142,8 @@ const idft = (frequencies) => {
 }
 
 /**
- * calculate Invers FFT of a given array
- * @param {[]} frequencies - array of cpmplex numbers representing the FFT of a signal
+ * calculate Inverse FFT for a given array
+ * @param {[]} frequencies - an array of cpmplex numbers representing the FFT of a signal
  * @returns Inverse FFT in an array of complex numbers
  */
 const ifft = (frequencies) => {
@@ -221,12 +231,14 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
         // make windowing on the segment:
         const insign = segments[index].map((value, sample) => value * windowFunction[sample]);
         const insign_fft = fft(insign);
-        const magnitude = insign_fft.map(value => math.abs(value));
+        const signalMagnitude = insign_fft.map(value => math.abs(value));
         const angles = insign_fft.map(value => math.atan2(value.im, value.re));
         
         // calculate SNR - Signal to Noise Ratio
         // norm in an array - the square root of the sum of squared elements
-        const SNRseg = math.log10(math.norm(magnitude) ** 2 / math.norm(noiseMagnitude) ** 2);
+        const signalPower = math.norm(signalMagnitude) ** 2;
+        const noisePower = math.norm(noiseMagnitude) ** 2;
+        const SNRseg = math.log10(signalPower / noisePower);
         
         // 3. In the frequency domain, subtract the result of step 1 from step 2. 
         for(let sample in segments[index]) {
@@ -238,13 +250,13 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
             
             // Second try:
             const noiseM = noiseMagnitude[sample];
-            const signalM = magnitude[sample];
+            const signalM = signalMagnitude[sample];
             let subtraction = 0;
-            if(signalM > noiseM) { // stepB-stepA > 0
+            if(signalM > noiseM) { // prevent negative magnitude
                 subtraction = math.subtract(signalM, noiseM);
             }
             
-            // x*e^(i*θ) - return the signal to its original angles
+            // x*e^(i*θ) - return the signal to its original angles (angles = θ)
             const phase = math.multiply(subtraction, math.exp(math.multiply(math.i, angles[sample])));
             
             segments[index][sample] = phase;
@@ -252,10 +264,10 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
             // console.log('sample: ', segments[index][sample]);
         }
         
-        // implement simple VAD detector: (VAD - Voice Activity Detection)
+        // implement a simple VAD detector: (VAD - Voice Activity Detection)
         if(SNRseg < Thres) {
             for(let i in noiseMagnitude) {
-                noiseMagnitude[i] = G * noiseMagnitude[i] + (1-G) * magnitude[i];
+                noiseMagnitude[i] = G * noiseMagnitude[i] + (1-G) * signalMagnitude[i];
             }
         }
         

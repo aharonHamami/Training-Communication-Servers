@@ -1,0 +1,56 @@
+version: '1' # version of this file
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - 27018:27017
+    volumes:
+      - db-data:/data/db
+    # environment:
+    #   - MONGO_INITDB_ROOT_USERNAME=admin
+    #   - MONGO_INITDB_ROOT_PASSWORD=password
+  mongo-express:
+    image: mongo-express
+    depends_on:
+      - mongodb
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb # name of the container running the MongoDB database
+      # - ME_CONFIG_MONGODB_AUTH_USERNAME=admin
+      # - ME_CONFIG_MONGODB_AUTH_PASSWORD=password
+  reg-server:
+    image: registeration-server
+    depends_on:
+      - mongodb
+    ports:
+      - 3006:3006
+    environment:
+      - MONGODB_SERVER=mongodb
+  edit-server:
+    image: editing-server
+    depends_on:
+      - mongodb
+    ports:
+      - 3008:3008
+    environment:
+      - MONGODB_SERVER=mongodb
+  comm-server:
+    image: communication-server
+    ports:
+      - 3007:3007
+  api-gateway:
+    image: api-gateway
+    depends_on:
+      - reg-server
+      - comm-server
+      - edit-server
+    ports:
+      - 3005:3005
+    environment:
+      - USERS_SERVER=reg-server
+      - COMMUNICATION_SERVER=comm-server
+      - EDITING_SERVER=edit-server
+volumes:
+  db-data:
+      

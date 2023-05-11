@@ -59,6 +59,10 @@ function authenticate(token, checkAdmin) {
     return true;
 }
 
+const users_servise = process.env.USERS_SERVER || 'localhost';
+const comm_servise = process.env.COMMUNICATION_SERVER || 'localhost';
+const edit_service = process.env.EDITING_SERVER || 'localhost';
+
 const httpRoutes = [
     {
         url: '/users',
@@ -88,7 +92,7 @@ const httpRoutes = [
             }
         },
         proxy: {
-            target: "http://localhost:3006",
+            target: `http://${users_servise}:3006`,
             changeOrigin: true, // if i understood correctly: http://localhost:3006 -> http://localhost3005
             pathRewrite: {
                 [`^/users`]: ''
@@ -166,7 +170,7 @@ const httpRoutes = [
             }
         },
         proxy: {
-            target: "http://localhost:3008",
+            target: `http://${edit_service}:3008`,
             changeOrigin: true,
             pathRewrite: {
                 [`^/editing`]: ''
@@ -179,7 +183,7 @@ const webSocketRoutes = [
     {
         // url: '/communication',
         proxy: {
-            target: 'http://localhost:3007',
+            target: `http://${comm_servise}:3007`,
             changeOrigin: true, // if i understood correctly: http://localhost:3007 -> http://localhost3005
             ws: true, // support WebSocket / Socket.io
             onProxyReq: (proxyReq, req, res) => {

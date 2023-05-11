@@ -144,4 +144,54 @@ router.post('/upload-files', (request, response) => {
     }
 });
 
+router.delete('/:name', async (request, response) => {
+    try {
+        const fileName = request.params.name;
+        
+        // prevent cases when the user send a path that contain '..'
+        if(fileName.split('.').length > 2) {
+            console.error(`<< Warning: user sent an invalid sound name ${fileName} >>`);
+            // 400 - Bad Request
+            response.status(400).json({ message: 'Invalid file name' });
+            return;
+        }
+        
+        console.log('delete sound requested: ', fileName);
+        
+        // delete from MongoDB:
+        bucket.find({filename: fileName}, {_id: 1,}).toArray()
+        .then(documents => {
+                console.log('documents: ', documents);
+                
+                const doc = documents[0];
+                
+                bucket.delete(doc._id, (error) => {
+                    if(error) {
+                        response.status(500).json({ message: "Couldn't handle your request" });
+                    }
+                });
+                
+                response.status(200).json({ message: `Record ${fileName} was deleted successfully` });
+            })
+            .catch(error => {
+                console.error(`couldn't find sound ${fileName}\n`, error); 
+                // 400 - Bad Request
+                response.status(400).json({
+                    message: 'Could not find the record you want to delete'
+                });
+            });
+        
+        // delete from the file system:
+        fs.unlink(path.join(SOUNDS_DIR, fileName), (error) => {
+            if (error) throw error;
+            
+            console.log(`Sound ${fileName} deleted from file system successfully`);
+        });
+        
+    }catch(err) {
+        response.status(500).json({message: 'Something went wrong, try again later'});
+        console.error(err);
+    }
+});
+
 module.exports = router;

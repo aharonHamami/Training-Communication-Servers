@@ -4,7 +4,8 @@
 /Communication-Server/node_modules
 
 /Editing-Server/node_modules
-/Editing-Server/src/audio/uploads/whistle.ogg
+/Editing-Server/src/audio/sounds
+/Editing-Server/src/audio/uploads
 
 /Registeration-Server/node_modules
 

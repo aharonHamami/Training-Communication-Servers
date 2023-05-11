@@ -12,7 +12,6 @@ RUN npm install
 COPY ./index.js /home/app
 COPY ./src /home/app/src
 
-# CMD ["node", "/home/app/index.js"]
 # the path is related to 'WORKDIR'
 # CMD run every time we make a container (unlike RUN that is for creating an image)
-CMD ["node", "."]
+CMD [ "node", "." ]
