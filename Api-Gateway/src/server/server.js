@@ -17,6 +17,7 @@ function createAuth(userId, name, admin){
     // creating a date for expiration:
     const expDate = new Date(); // expire date
     expDate.setTime(expDate.getTime() + 1 * 60 * 60 * 1000); // + 1 hour from now
+    // expDate.setTime(expDate.getTime() + 10 * 1000); // + 10 seconds from now
     
     const authInfo = {
         userId: userId,
@@ -67,28 +68,32 @@ const httpRoutes = [
     {
         url: '/users',
         beforeProxy: (req, res, next) => {
-            const whiteList = [
-                /^[/]sign[-]up$/, // /sign-up
-                /^[/]log[-]in$/ // /log-in
-            ];
-            // check white list
-            const index = whiteList.findIndex(regExp => (regExp.test(req.url)));
-            if(index != -1) { // found
-                next();
-                return;
-            }
-            
-            const token = req.headers['authentication'];
-            
-            // the user need to be authenticated and has to have administration access
-            if(!authenticate(token, true)) {
-                console.log('blocking request');
-                // 401 - Unauthorized
-                res.status(401).json({ message: 'This information requires authentication' });
-                // stop the request from passing
-            }else {
-                console.log('request authenticated');
-                next();
+            try{
+                const whiteList = [
+                    /^[/]sign[-]up$/, // /sign-up
+                    /^[/]log[-]in$/ // /log-in
+                ];
+                // check white list
+                const index = whiteList.findIndex(regExp => (regExp.test(req.url)));
+                if(index != -1) { // found
+                    next();
+                    return;
+                }
+                
+                const token = req.headers['authentication'];
+                
+                // the user need to be authenticated and has to have administration access
+                if(!authenticate(token, true)) {
+                    console.log('blocking request');
+                    // 401 - Unauthorized
+                    res.status(401).json({ message: 'This information requires authentication' });
+                    // stop the request from passing
+                }else {
+                    console.log('request authenticated');
+                    next();
+                }
+            }catch(e){
+                console.error('Error: Something went wrong in users->beforeProxy:\n', e);
             }
         },
         proxy: {
@@ -191,18 +196,23 @@ const webSocketRoutes = [
                 console.log('query: ', req.query);
             },
             onProxyReqWs: (proxyReq, req, socket, options, head) => {
-                console.log('websocket request');   
+                try {
+                    console.log('websocket request');
                 
-                // get the queries from the request url:
-                const urlSearchParams = new URLSearchParams(req.url.slice(req.url.indexOf('?')));
-                const queries = Object.fromEntries(urlSearchParams.entries());
-                
-                console.log('token: ', queries.token);
-                
-                if(!authenticate(queries.token, false)) {
-                    console.log('stop the request');
-                    // stop the request from passing
-                    proxyReq.abort();
+                    // get the queries from the request url:
+                    const urlSearchParams = new URLSearchParams(req.url.slice(req.url.indexOf('?')));
+                    const queries = Object.fromEntries(urlSearchParams.entries());
+                    
+                    console.log('token: ', queries.token);
+                    
+                    if(!authenticate(queries.token, false)) {
+                        console.log('stop the request');
+                        // stop the request from passing
+                        // socket.destroy();
+                        proxyReq.abort();
+                    }
+                }catch(e) {
+                    console.error('Error: Something went wrong in socket.io->onProxyReq:\n', e);
                 }
             }
         }

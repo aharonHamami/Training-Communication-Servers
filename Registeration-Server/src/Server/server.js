@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 
+const cors = require('cors');
+
 const UsersDB = require('../DataBase/Schemas/Users.js');
 // const AuthDB = require('../DataBase/Schemas/Authenticated');
 const { getRandomString } = require('../tools/tools.js');
@@ -116,12 +118,13 @@ function logIn(request, response) {
 }
 
 function start(){
+    // app.use(cors({origin: "http://localhost:3009"}));
     app.use(express.json());
     
     app.use((req, res, next) => {
         console.log('request: ' + req.path);
         next();
-    })
+    });
     
     app.get('/', (request, response) => {
         response.send(' -- Registeration server is working -- ');

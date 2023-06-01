@@ -179,7 +179,7 @@ function average(arr, start, end) {
 }
 
 /**
- * Speech enhancment by calculating Spectral Subtraction of a signal
+ * Speech enhancment by calculating Spectral Subtraction of noise from a signal
  * @param {[]} signal - an array of the original signal values
  * @param {[]} noise - an array of the noise values from the signal
  * @returns the signal array with less noise and enhanced speech
@@ -242,13 +242,7 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
         
         // 3. In the frequency domain, subtract the result of step 1 from step 2. 
         for(let sample in segments[index]) {
-            // First try:
-            // const noiseMagnitude = math.abs(subtractFFT[sample]); // step 1
-            // const signalMagnitude = math.abs(segments[index][sample]); // step 2
-            // const subtraction = math.subtract(signalMagnitude, noiseMagnitude);
-            // segments[index][sample] = math.multiply(math.divide(subtraction, signalMagnitude), segments[index][sample]);
-            
-            // Second try:
+            // subtraction:
             const noiseM = noiseMagnitude[sample];
             const signalM = signalMagnitude[sample];
             let subtraction = 0;
@@ -265,6 +259,7 @@ const spectralSubtraction = (signal, selectedNoise) => { // start, fftSize
         }
         
         // implement a simple VAD detector: (VAD - Voice Activity Detection)
+        // in case the SNR is too low - update the noise magnitude
         if(SNRseg < Thres) {
             for(let i in noiseMagnitude) {
                 noiseMagnitude[i] = G * noiseMagnitude[i] + (1-G) * signalMagnitude[i];

@@ -9,16 +9,16 @@ services:
     # environment:
     #   - MONGO_INITDB_ROOT_USERNAME=admin
     #   - MONGO_INITDB_ROOT_PASSWORD=password
-  mongo-express:
-    image: mongo-express
-    depends_on:
-      - mongodb
-    ports:
-      - 8081:8081
-    environment:
-      - ME_CONFIG_MONGODB_SERVER=mongodb # name of the container running the MongoDB database
-      # - ME_CONFIG_MONGODB_AUTH_USERNAME=admin
-      # - ME_CONFIG_MONGODB_AUTH_PASSWORD=password
+  # mongo-express:
+  #   image: mongo-express
+  #   depends_on:
+  #     - mongodb
+  #   ports:
+  #     - 8081:8081
+  #   environment:
+  #     - ME_CONFIG_MONGODB_SERVER=mongodb # name of the container running the MongoDB database
+  #     # - ME_CONFIG_MONGODB_AUTH_USERNAME=admin
+  #     # - ME_CONFIG_MONGODB_AUTH_PASSWORD=password
   reg-server:
     image: registeration-server
     depends_on:

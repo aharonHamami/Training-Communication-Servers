@@ -25,18 +25,28 @@ router.post('/calculateDFT', (request, response) => {
 router.post('/calculateFFT', (request, response) => {
     console.log('start calculating FFT...');
     try {
+        const worker = new Worker(path.join(__dirname, '..', '..', 'tools', 'fft_service.js'));
+        
         let signal = request.body.signal;
         if(!Array.isArray(signal)) {
             signal = Object.values(signal);
         }
         
-        const fftResult = fft(signal);
+        worker.postMessage(signal);
+        worker.once('message', (result) => {
+            const fftResult = result;
         
-        console.log('FFT ready: ', fftResult);
-        response.status(200).json({
-            message: 'FFT of the signal',
-            FFT: fftResult
+            console.log('FFT ready: ', fftResult);
+            response.status(200).json({
+                message: 'FFT of the signal',
+                FFT: fftResult
+            }); 
         });
+        worker.on('error', error => {
+            response.status(500).json({message: 'Could not calculate FFT, try again later'});
+            console.error(error);
+        });
+
     }catch (e) {
         console.log("Error: couldn't calculate FFT: ", e);
         response.status(500).json({
@@ -71,18 +81,35 @@ router.post('/calculateIDFT', (request, response) => {
 router.post('/calculateIFFT', (request, response) => {
     console.log('start calculating IFFT...');
     try {
+        const worker = new Worker(path.join(__dirname, '..', '..', 'tools', 'ifft_service.js'));
+        
         let frequencies = request.body.frequencies;
         if(!Array.isArray(frequencies)) {
             frequencies = Object.values(frequencies);
         }
         
-        const ifftResult = ifft(frequencies);
-        
-        console.log('IFFT ready: ', ifftResult);
-        response.status(200).json({
-            message: 'Inverse FFT',
-            IDFT: ifftResult
+        worker.postMessage(frequencies);
+        worker.once('message', (result) => {
+            const ifftResult = result;
+            
+            console.log('IFFT ready: ', ifftResult);
+            response.status(200).json({
+                message: 'Inverse FFT',
+                IFFT: ifftResult
+            });
         });
+        worker.on('error', error => {
+            response.status(500).json({message: 'Could not calculate Inverse FFT, try again later'});
+            console.error(error);
+        });
+        
+        // const ifftResult = ifft(frequencies);
+        
+        // console.log('IFFT ready: ', ifftResult);
+        // response.status(200).json({
+        //     message: 'Inverse FFT',
+        //     IDFT: ifftResult
+        // });
     }catch (e) {
         console.log("Error: couldn't calculate IFFT: ", e);
         response.status(500).json({

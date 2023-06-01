@@ -37,6 +37,10 @@ function start() {
         res.status(500).json({message: 'Editing: something went wrong'});
     });
     
+    // app.on('error', (err) => {
+    //     console.error('Express error: ', err);
+    // })
+    
     app.listen(PORT, () => {
         console.log(`listening on ${PORT}...`);
     });
